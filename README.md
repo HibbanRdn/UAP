@@ -1,0 +1,61 @@
+# UAP
+
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <DHT.h>
+// Definisi pin dan sensor
+#define DHTPIN 2
+#define DHTTYPE DHT11
+#define FLAME_PIN 3
+#define BUZZER_PIN 4
+#define PUMP_PIN 5
+// Inisialisasi objek DHT dan LCD
+DHT dht(DHTPIN, DHTTYPE);
+LiquidCrystal_I2C lcd(0x27, 16, 2); // Alamat I2C biasanya 0x27
+// Fungsi untuk menampilkan running text
+void runningText() {
+ String line1 = " Sistem Kebakaran ";
+ String line2 = " UAP Embedded System ";
+ for (int i = 0; i <= line1.length() - 16; i++) {
+ lcd.setCursor(0, 0);
+ lcd.print(line1.substring(i, i + 16));
+ lcd.setCursor(0, 1);
+ lcd.print(line2.substring(i, i + 16));
+ delay(300);
+ }
+}
+void setup() {
+ Serial.begin(9600);
+ dht.begin();
+ lcd.begin(16, 2);
+ lcd.backlight();
+ pinMode(FLAME_PIN, INPUT);
+ pinMode(BUZZER_PIN, OUTPUT);
+ pinMode(PUMP_PIN, OUTPUT);
+ digitalWrite(BUZZER_PIN, LOW);
+ digitalWrite(PUMP_PIN, LOW);
+ runningText(); // Tampilkan teks berjalan saat awal
+ lcd.clear();
+}
+void loop() {
+ float suhu = dht.readTemperature();
+ int flame = digitalRead(FLAME_PIN); // 0 = terdeteksi api
+ lcd.setCursor(0, 0);
+ lcd.print("Suhu: ");
+ lcd.print(suhu);
+ lcd.print(" C ");
+ if (flame == 0 || suhu > 50) {
+ digitalWrite(BUZZER_PIN, HIGH);
+ digitalWrite(PUMP_PIN, HIGH); // Pompa aktif semprot air
+ lcd.setCursor(0, 1);
+ lcd.print("BAHAYA! Api/Suhu!");
+ Serial.println("BAHAYA: Api atau suhu tinggi!");
+ } else {
+ digitalWrite(BUZZER_PIN, LOW);
+ digitalWrite(PUMP_PIN, LOW); // Pompa mati
+ lcd.setCursor(0, 1);
+ lcd.print("Aman ");
+ Serial.println("Kondisi Aman");
+ }
+ delay(1000);
+}
